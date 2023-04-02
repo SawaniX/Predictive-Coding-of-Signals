@@ -27,7 +27,6 @@ class Transmitter:
                     pi += segment[t] * segment[t-i]
                 part.append(pi)
             p.append(part)
-        print(p[-1])
 
     def _calculate_residual_errors(self):
         pass
