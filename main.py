@@ -1,6 +1,6 @@
 from read_file import Data
-from receiver import Receiver
-from transmitter import Transmitter
+from receiver.receiver import Receiver
+from transmitter.transmitter import Transmitter
 
     
 if __name__=='__main__':
