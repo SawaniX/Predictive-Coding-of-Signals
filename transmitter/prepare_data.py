@@ -12,7 +12,7 @@ class PrepareData:
     def prepare(self):
         segments = self._split_to_segments()
         self._flatten(segments)
-        self._fill_ends_with_r_zeros(segments)
+        self._fill_ends_with_white_noise(segments)
         return segments
 
     def _split_to_segments(self):
@@ -42,7 +42,12 @@ class PrepareData:
                 w = 0.5 * (1 - math.cos((2*math.pi*k) / (self.N+1)))
                 segment[k-1] = sample * w
 
-    def _fill_ends_with_r_zeros(self, segments: list):
+    def _fill_ends_with_white_noise(self, segments: list):
+        mean = 0
+        std = 1
+        num_samples = 10
         for i in range(len(segments)):
-            segments[i] = np.concatenate((segments[i], np.zeros(self.r)))
-            segments[i] = np.concatenate((np.zeros(self.r), segments[i]))
+            white_noise_start = np.random.normal(mean, std, size=num_samples)
+            white_noise_end = np.random.normal(mean, std, size=num_samples)
+            segments[i] = np.concatenate((segments[i], white_noise_start))
+            segments[i] = np.concatenate((white_noise_end, segments[i]))
