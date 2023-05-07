@@ -4,8 +4,10 @@ from transmitter.transmitter import Transmitter
 
     
 if __name__=='__main__':
+    r = 10
+
     data = Data().data
 
-    transmitter = Transmitter(data).compress()
+    transmitter = Transmitter(data, r).compress()
 
     receiver = Receiver()

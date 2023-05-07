@@ -1,19 +1,21 @@
 import numpy as np
 import math
+import copy
 
 
 class PrepareData:
-    def __init__(self, data: np.ndarray):
+    def __init__(self, data: np.ndarray, r: int):
         self.data = data
         self.len = data.shape[0]
         self.N = 256
-        self.r = 10
+        self.r = r
 
     def prepare(self):
         segments = self._split_to_segments()
         self._flatten(segments)
+        segments_raw = copy.deepcopy(segments)
         self._fill_ends_with_white_noise(segments)
-        return segments
+        return segments, segments_raw
 
     def _split_to_segments(self):
         segments = self._split()
