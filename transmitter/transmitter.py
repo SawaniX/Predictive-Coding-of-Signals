@@ -44,21 +44,24 @@ class Transmitter:
         # plt.show()
 
         seg_len = len(self.segments_raw[0])
-        signal = 10 * [0]
+        segments_count = len(self.segments_raw)
+        signal = []#10 * [0]
+        y_prev = 10 * [0]
         for idx, segment in enumerate(self.segments_raw):
             for k in range(seg_len):
                 yk = 0
                 for i in range(1, self.r+1):
                     if k - i >= 0:
-                        yk += self.all_k[idx][i] * signal[k-i]
+                        #print(i, k, k-i)
+                        yk += self.all_k[idx][i] * y_prev[k-i]
                 yk = -yk + self.all_e[idx][k]
                 print(yk)
-                signal.append(yk)
-        signal = signal[10:]
-        print(len(self.segments_raw) * seg_len)
-        
+                if k < 246:
+                    signal.append(yk)
+                y_prev.append(yk)
+
         npa = np.asarray(signal, dtype=np.int16)
-        wavfile.write('rekon2.wav', 11025, npa.astype(np.int16))
+        wavfile.write('rekon3.wav', 11025, npa.astype(np.int16))
         time = np.linspace(0., len(signal) / 11025, len(signal))
         plt.plot(time, signal, label="Left channel")
         plt.legend()

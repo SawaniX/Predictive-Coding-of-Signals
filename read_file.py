@@ -10,12 +10,13 @@ class Data:
         samplerate, data = wavfile.read(dir_path + '/wiedzmin_1_channel.wav')
         self.samplerate = samplerate
         self.data = data.astype(float)
+        self.plot()
 
     def plot(self):
         time = np.linspace(0., self.data.shape[0] / self.samplerate, self.data.shape[0])
-        plt.plot(time, self.data, label="Left channel")
+        print(self.data.shape[0], self.samplerate)
+        plt.plot(time, self.data, label="dsfdl")
         plt.legend()
         plt.xlabel("Time [s]")
         plt.ylabel("Amplitude")
-        plt.show()
         
