@@ -1,6 +1,8 @@
 import numpy as np
 from scipy import signal, linalg
 import statsmodels.api as sm
+import pickle
+import bitstring
 
 from transmitter.prepare_data import PrepareData
 
@@ -18,6 +20,9 @@ class Transmitter:
         self._levinson_durbin()
         self._calculate_residual_errors()
         self._find_max_error()
+        #self._quantize_uniform(self.all_e[1], -self.max_errors[1], self.max_errors[1], 8)
+        self._quantization()
+        #self._save_file()
         
     def _calculate_autocorrelation(self):
         self.autocorr_coefficients = []
@@ -58,12 +63,13 @@ class Transmitter:
                 self.a[f'a{i}{i}'] = ki
                 k.append(ki)
             self.all_k.append(k)
+
         #print(self.autocorr_coefficients[1])
-        print(self.all_k[1])
-        print()
-        print()
-        si, ar, _, _, _ = sm.tsa.stattools.levinson_durbin(self.autocorr_coefficients[1], nlags=10, isacov=True)
-        print(ar)
+        # print(self.all_k[1])
+        # print()
+        # print()
+        # si, ar, _, _, _ = sm.tsa.stattools.levinson_durbin(self.autocorr_coefficients[1], nlags=10, isacov=True)
+        # print(ar)
 
     def _calc_sum(self, i: int, p: list, k: list):
         sum = 0
@@ -78,7 +84,11 @@ class Transmitter:
         for segment, k in zip(self.segments_raw, self.all_k):
             e = []
             for i in range(len(segment)):
-                e.append(sum([a*b for a,b in zip(k, segment[i:self.r+1])]))
+                error = 0
+                for j in range(self.r+1):
+                    if i-j >= 0:
+                        error += segment[i-j] * k[j]
+                e.append(error)
             self.all_e.append(e)
 
     def _find_max_error(self):
@@ -86,9 +96,60 @@ class Transmitter:
         for e in self.all_e:
             self.max_errors.append(max(e, key=abs))
 
-    def _quantization(self, levels: int):
-        pass
+    def quantize(self, data, levels, maxe):
+        max_value = maxe
+        min_value = -maxe
+        step = (max_value - min_value) / levels
+        return np.round((data - min_value) / step) * step + min_value
+
+    def _quantization(self, levels: int = 8):
+        levels = 8
+
+        self.quants = []
+        for idx, e in enumerate(self.all_e):
+            quantized_data = self.quantize(e, levels, self.max_errors[idx])
+            print(quantized_data)
+            self.quants.append(quantized_data)
+        # self.quants = []
+        # for idx, e in enumerate(self.all_e):
+        #     step = (2 * self.max_errors[idx]) / (levels - 1)
+        #     if step == 0:
+        #         quant = np.floor(e)
+        #     else:
+        #         quant = np.floor(e/step)   # lub round
+        #     self.quants.append(quant)
 
     def _save_file(self):
-        pass
+        bity = []
+        for e in self.quants[1]:
+            bit = bin(int(e))
+            print(bit, e)
+        # import csv
+
+        # with open("a.csv", "w") as f:
+        #     writer = csv.writer(f)
+        #     writer.writerows(self.all_k)
+        # rows = [[data] for data in self.max_errors]
+        # with open("emax.csv", "w") as f:
+        #     writer = csv.writer(f)
+        #     writer.writerows(rows)
+        # with open("quant.csv", "w") as f:
+        #     writer = csv.writer(f)
+        #     writer.writerows(self.quants)
+
+        # with open('a.bin', 'wb') as f:
+        #     f.write(np.array(self.all_k).tobytes())
+        # with open('emax.bin', 'wb') as f:
+        #     f.write(np.array(self.max_errors).tobytes())
+        # with open('quants.bin', 'wb') as f:
+        #     f.write(np.array(self.quants).tobytes())
+
+
+
+        # with open('a.pickle', 'wb') as handle:
+        #     pickle.dump(self.all_k, handle)
+        # with open('emax.pickle', 'wb') as handle:
+        #     pickle.dump(self.max_errors, handle)
+        # with open('quants.pickle', 'wb') as handle:
+        #     pickle.dump(self.quants, handle)
     
