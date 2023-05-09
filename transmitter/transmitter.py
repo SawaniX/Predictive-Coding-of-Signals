@@ -3,8 +3,9 @@ from scipy import signal, linalg
 import statsmodels.api as sm
 import pickle
 import bitstring
-
+import matplotlib.pyplot as plt
 from transmitter.prepare_data import PrepareData
+from scipy.io import wavfile
 
 class Transmitter:
     def __init__(self, data: np.ndarray, r: int):
@@ -20,33 +21,59 @@ class Transmitter:
         self._levinson_durbin()
         self._calculate_residual_errors()
         self._find_max_error()
-        #self._quantize_uniform(self.all_e[1], -self.max_errors[1], self.max_errors[1], 8)
-        self._quantization()
+        self._odtworz()
+        #self._quantization()
         #self._save_file()
+
+    def _odtworz(self):
+        # bb = [0 for _ in range(250000)]
+        # for idx in range(1, len(self.segments_raw)):
+        #     for k in range(len(self.segments_raw[0])):
+        #         yk = 0
+        #         for i in range(1, self.r+1):
+        #             if k - i > 0:
+        #                 yk = yk + self.all_k[idx-1][i] * bb[k-i]
+        #         bb[(idx-1) * 256 + k] = -yk + self.all_e[idx][k]
+        # npa = np.asarray(bb[:240895], dtype=np.int16)
+        # wavfile.write('rekon.wav', 11025, npa.astype(np.int16))
+        # time = np.linspace(0., 240895 / 11025, 240895)
+        # plt.plot(time, bb[:240895], label="Left channel")
+        # plt.legend()
+        # plt.xlabel("Time [s]")
+        # plt.ylabel("Amplitude")
+        # plt.show()
+
+        seg_len = len(self.segments_raw[0])
+        signal = 10 * [0]
+        for idx, segment in enumerate(self.segments_raw):
+            for k in range(seg_len):
+                yk = 0
+                for i in range(1, self.r+1):
+                    if k - i >= 0:
+                        yk += self.all_k[idx][i] * signal[k-i]
+                yk = -yk + self.all_e[idx][k]
+                print(yk)
+                signal.append(yk)
+        signal = signal[10:]
+        print(len(self.segments_raw) * seg_len)
+        
+        npa = np.asarray(signal, dtype=np.int16)
+        wavfile.write('rekon2.wav', 11025, npa.astype(np.int16))
+        time = np.linspace(0., len(signal) / 11025, len(signal))
+        plt.plot(time, signal, label="Left channel")
+        plt.legend()
+        plt.xlabel("Time [s]")
+        plt.ylabel("Amplitude")
+        plt.show()
+
+
+
+
         
     def _calculate_autocorrelation(self):
         self.autocorr_coefficients = []
-        # for segment in self.segments_with_noise:
-        #     N = len(segment)
-        #     segment_coefficients = [1]
-        #     for row in range(1, self.r+1):
-        #         p = 0
-        #         for t in range(row+1, N):
-        #             p += segment[t] * segment[t-1]
-        #         R = p / N
-        #         segment_coefficients.append(p)
-        #     self.autocorr_coefficients.append(segment_coefficients)
-
         for segment in self.segments_with_noise:
             self.autocorr_coefficients.append(sm.tsa.acf(segment, nlags = 10))
-    
-    # def _yule_walker(self, autocorr_coefficients: list):
-    #     a = []
-    #     for p in autocorr_coefficients:
-    #         R = linalg.toeplitz(p[:self.r])
-    #         r = p[1:self.r+1]
-    #         a.append(linalg.inv(R).dot(r))
-    #     return a
 
     def _levinson_durbin(self):
         self.all_k = []
@@ -63,13 +90,6 @@ class Transmitter:
                 self.a[f'a{i}{i}'] = ki
                 k.append(ki)
             self.all_k.append(k)
-
-        #print(self.autocorr_coefficients[1])
-        # print(self.all_k[1])
-        # print()
-        # print()
-        # si, ar, _, _, _ = sm.tsa.stattools.levinson_durbin(self.autocorr_coefficients[1], nlags=10, isacov=True)
-        # print(ar)
 
     def _calc_sum(self, i: int, p: list, k: list):
         sum = 0
@@ -96,60 +116,16 @@ class Transmitter:
         for e in self.all_e:
             self.max_errors.append(max(e, key=abs))
 
-    def quantize(self, data, levels, maxe):
-        max_value = maxe
-        min_value = -maxe
-        step = (max_value - min_value) / levels
-        return np.round((data - min_value) / step) * step + min_value
-
     def _quantization(self, levels: int = 8):
-        levels = 8
-
         self.quants = []
         for idx, e in enumerate(self.all_e):
-            quantized_data = self.quantize(e, levels, self.max_errors[idx])
-            print(quantized_data)
-            self.quants.append(quantized_data)
-        # self.quants = []
-        # for idx, e in enumerate(self.all_e):
-        #     step = (2 * self.max_errors[idx]) / (levels - 1)
-        #     if step == 0:
-        #         quant = np.floor(e)
-        #     else:
-        #         quant = np.floor(e/step)   # lub round
-        #     self.quants.append(quant)
+            step = (2 * self.max_errors[idx]) / (levels - 1)
+            if step == 0:
+                quant = np.floor(e)
+            else:
+                quant = np.floor(e/step)   # lub round
+            self.quants.append(quant)
 
     def _save_file(self):
-        bity = []
-        for e in self.quants[1]:
-            bit = bin(int(e))
-            print(bit, e)
-        # import csv
-
-        # with open("a.csv", "w") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerows(self.all_k)
-        # rows = [[data] for data in self.max_errors]
-        # with open("emax.csv", "w") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerows(rows)
-        # with open("quant.csv", "w") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerows(self.quants)
-
-        # with open('a.bin', 'wb') as f:
-        #     f.write(np.array(self.all_k).tobytes())
-        # with open('emax.bin', 'wb') as f:
-        #     f.write(np.array(self.max_errors).tobytes())
-        # with open('quants.bin', 'wb') as f:
-        #     f.write(np.array(self.quants).tobytes())
-
-
-
-        # with open('a.pickle', 'wb') as handle:
-        #     pickle.dump(self.all_k, handle)
-        # with open('emax.pickle', 'wb') as handle:
-        #     pickle.dump(self.max_errors, handle)
-        # with open('quants.pickle', 'wb') as handle:
-        #     pickle.dump(self.quants, handle)
+        pass
     
