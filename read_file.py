@@ -14,8 +14,7 @@ class Data:
 
     def plot(self):
         time = np.linspace(0., self.data.shape[0] / self.samplerate, self.data.shape[0])
-        print(self.data.shape[0], self.samplerate)
-        plt.plot(time, self.data, label="dsfdl")
+        plt.plot(time, self.data, label="Oryginal")
         plt.legend()
         plt.xlabel("Time [s]")
         plt.ylabel("Amplitude")
