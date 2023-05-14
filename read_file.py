@@ -10,7 +10,7 @@ class Data:
         samplerate, data = wavfile.read(dir_path + '/wiedzmin_1_channel.wav')
         self.samplerate = samplerate
         self.data = data.astype(float)
-        self.plot()
+        #self.plot()
 
     def plot(self):
         time = np.linspace(0., self.data.shape[0] / self.samplerate, self.data.shape[0])

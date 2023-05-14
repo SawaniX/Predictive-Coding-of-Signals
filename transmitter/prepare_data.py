@@ -12,16 +12,16 @@ class PrepareData:
 
     def prepare(self):
         segments = self._split_to_segments()
-        self._flatten(segments)
         segments_raw = copy.deepcopy(segments)
+        self._flatten(segments)
         self._fill_ends_with_white_noise(segments)
         return segments, segments_raw
 
     def _split_to_segments(self):
         segments = self._split()
 
-        if self._is_last_segment_shorter_than_N(segments[-1]):
-            segments[-1] = self._fill_last_array_with_zeros_to_N_values(segments[-1])
+        # if self._is_last_segment_shorter_than_N(segments[-1]):
+        #     segments[-1] = self._fill_last_array_with_zeros_to_N_values(segments[-1])
         return segments
     
     def _split(self):
@@ -39,10 +39,10 @@ class PrepareData:
         return np.concatenate((last_segment, np.zeros(self.N - len(last_segment))))
     
     def _flatten(self, segments: list):
-        for segment in segments:
-            for k, sample in enumerate(segment, 1):
+        for idx, segment in enumerate(segments):
+            for k, sample in enumerate(segment):
                 w = 0.5 * (1 - math.cos((2*math.pi*k) / (self.N+1)))
-                segment[k-1] = sample * w
+                segments[idx][k] = sample * w
 
     def _fill_ends_with_white_noise(self, segments: list):
         mean = 0
