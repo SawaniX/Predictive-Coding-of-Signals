@@ -22,13 +22,13 @@ class Transmitter:
         self.segments_with_noise, self.segments_raw = self.preparator.prepare()
         self._calculate_autocorrelation()
         self._levinson_durbin()
-        #self._calculate_residual_errors()
-        #self._find_max_error()
-        #self._quantization()
-        #self._save_file()
+        self._calculate_residual_errors()
+        self._find_max_error()
+        self._quantization()
+        self._save_file()
         #self._odtworz()
         self._test()
-        self._rysowanie()
+        #self._rysowanie()
         
     def _calculate_autocorrelation(self):
         self.autocorr_coefficients = []
@@ -51,15 +51,6 @@ class Transmitter:
                 k.append(ki)
             self.all_k.append(k)
 
-        # for p in self.segments_with_noise:
-        #     _, s, _, _, _ = sm.tsa.stattools.levinson_durbin(p, nlags=10, isacov=False)
-        #     c = [1]
-        #     c.extend(s)
-        #     self.all_k.append(c)
-        x = [b for c in self.all_k for b in c]
-        print(max(x))
-        print(min(x))
-
     def _calc_sum(self, i: int, p: list, k: list):
         sum = 0
         for j in range(1, i):
@@ -75,36 +66,19 @@ class Transmitter:
                 self.segmenty_bez_zakladki.append(segment)
             else:
                 self.segmenty_bez_zakladki.append(segment[10:])
-
+        
         self.all_e = []
-        for idx, (segment, k) in enumerate(zip(self.segmenty_bez_zakladki, self.all_k)):
-            e = []
-            for i in range(len(segment)):
-                error = 0
-                for j in range(self.r+1):
-                    if idx == 0:
-                        if i-j >= 0:
-                            error += segment[i-j] * k[j]
-                    else:
-                        if i-j >= 0:
-                            error += segment[i-j] * k[j]
-                        else:
-                            error += self.segmenty_bez_zakladki[idx-1][-j] * k[j]
-                e.append(error)
-            self.all_e.append(e)
-
-
-
-        # self.all_e = []
-        # for segment, k in zip(self.segments_raw, self.all_k):
-        #     e = []
-        #     for i in range(len(segment)):
-        #         error = 0
-        #         for j in range(self.r+1):
-        #             if i-j >= 0:
-        #                 error += segment[i-j] * k[j]
-        #         e.append(error)
-        #     self.all_e.append(e)
+        for idx, segment in enumerate(self.segmenty_bez_zakladki):
+            e_seg = []
+            for ind, yk in enumerate(segment):
+                ek = 0
+                for i in range(11):
+                    if ind - i >= 0:
+                        ek += self.all_k[idx][i] * segment[ind - i]
+                    elif ind - i < 0 and idx > 0:
+                        ek += self.all_k[idx][i] * self.segmenty_bez_zakladki[idx-1][-i]
+                e_seg.append(ek)
+            self.all_e.append(e_seg)
 
     def _find_max_error(self):
         self.max_errors = []
@@ -117,9 +91,9 @@ class Transmitter:
             e_plus = [x+self.max_errors[idx] for x in e]
             step = (2 * self.max_errors[idx]) / (self.quant_level - 1)
             if step == 0:
-                quant = np.round(e_plus)
+                quant = np.floor(e_plus)
             else:
-                quant = np.round(e_plus/step)   # lub round
+                quant = np.floor(e_plus/step)   # lub round
             self.quants.append(quant)
 
     def _save_file(self):
@@ -141,28 +115,28 @@ class Transmitter:
             plik.write(bajty)
 
     def _test(self):
-        self.segmenty_bez_zakladki = []
-        for idx, segment in enumerate(self.segments_raw):
-            if idx == 0:
-                self.segmenty_bez_zakladki.append(segment)
-            else:
-                self.segmenty_bez_zakladki.append(segment[10:])
+        # self.segmenty_bez_zakladki = []
+        # for idx, segment in enumerate(self.segments_raw):
+        #     if idx == 0:
+        #         self.segmenty_bez_zakladki.append(segment)
+        #     else:
+        #         self.segmenty_bez_zakladki.append(segment[10:])
         
-        e = []
-        for idx, segment in enumerate(self.segmenty_bez_zakladki):
-            e_seg = []
-            for ind, yk in enumerate(segment):
-                ek = 0
-                for i in range(11):
-                    if ind - i >= 0:
-                        ek += self.all_k[idx][i] * segment[ind - i]
-                    elif ind - i < 0 and idx > 0:
-                        ek += self.all_k[idx][i] * self.segmenty_bez_zakladki[idx-1][-i]
-                e_seg.append(ek)
-            e.append(e_seg)
+        # e = []
+        # for idx, segment in enumerate(self.segmenty_bez_zakladki):
+        #     e_seg = []
+        #     for ind, yk in enumerate(segment):
+        #         ek = 0
+        #         for i in range(11):
+        #             if ind - i >= 0:
+        #                 ek += self.all_k[idx][i] * segment[ind - i]
+        #             elif ind - i < 0 and idx > 0:
+        #                 ek += self.all_k[idx][i] * self.segmenty_bez_zakladki[idx-1][-i]
+        #         e_seg.append(ek)
+        #     e.append(e_seg)
 
         odtw = []
-        for idx, ee in enumerate(e):
+        for idx, ee in enumerate(self.all_e):
             odtw_seg = []
             for ind, eee in enumerate(ee):
                 yk = 0
@@ -178,9 +152,9 @@ class Transmitter:
         o = [x for a in odtw for x in a]
         #o = o[10000:13000]
         npa = np.asarray(o, dtype=np.int16)
-        wavfile.write('absb.wav', 11025, npa.astype(np.int16))
+        wavfile.write('uju2.wav', 11025, npa.astype(np.int16))
         time = np.linspace(0., len(o)/11025, len(o))
-        plt.plot(time, o, label="Odtworzony")
+        plt.plot(time, o, label="tra")
         plt.legend()
         plt.xlabel("Time [s]")
         plt.ylabel("Amplitude")

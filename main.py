@@ -8,7 +8,7 @@ if __name__=='__main__':
 
     data = Data().data
 
-    bits = 4
+    bits = 3
     transmitter = Transmitter(data, r, bits).compress()
 
-    #receiver = Receiver(bits)
+    receiver = Receiver(bits)

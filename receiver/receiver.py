@@ -42,29 +42,38 @@ class Receiver:
             liczba = bit_lista[bit_index:bit_index+self.bits].uint
             lista.append(liczba)
             bit_index += self.bits
-        quants = [lista[i:i + self.n] for i in range(0, len(lista), self.n)]
+        l = [self.n]
+        l.extend(list(range(self.n, len(lista), self.n-10)))
+        quants = []
+        for idx, i in enumerate(l):
+            if idx == 0:
+                print("tu")
+                quants.append(lista[i:i + self.n])
+            else:
+                quants.append(lista[i:i + self.n-10])
         self._dequantization(quants)
 
     def reconstruct_signal(self):
-        signal = []
-        y_prev = 10 * [0]
-        for idx, segment in enumerate(self.all_e):
-            for k in range(self.n):
+        odtw = []
+        for idx, ee in enumerate(self.all_e):
+            odtw_seg = []
+            for ind, eee in enumerate(ee):
                 yk = 0
-                for i in range(1, self.r+1):
-                    if k - i >= 0:
-                        yk += self.all_k[idx][i] * y_prev[k-i]
-                yk = -yk + self.all_e[idx][k]
-                if k < 246:
-                    signal.append(yk)
-                y_prev.append(yk)
+                for i in range(1, 11):
+                    if ind - i >= 0:
+                        yk += self.all_k[idx][i] * odtw_seg[ind-i]
+                    elif ind - i < 0 and idx > 0:
+                        yk += self.all_k[idx][i] * odtw[idx-1][-i]
+                yk = eee - yk/10
+                odtw_seg.append(yk)
+            odtw.append(odtw_seg)
+        signal = [x for a in odtw for x in a]
         
         npa = np.asarray(signal, dtype=np.int16)
         wavfile.write(f'{str(self.bits)}bity.wav', 11025, npa.astype(np.int16))
+
         time = np.linspace(0., len(signal) / 11025, len(signal))
-        #time2 = np.linspace(0., len(signal) / 11025, int(len(signal)/len(self.all_e)))
         plt.plot(time, signal, label="Odtworzony")
-        #plt.vlines(x = time2, ymin = -5000, ymax = 5000, color = 'b')
         plt.legend()
         plt.xlabel("Time [s]")
         plt.ylabel("Amplitude")
