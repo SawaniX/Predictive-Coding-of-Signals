@@ -91,9 +91,9 @@ class Transmitter:
             e_plus = [x+self.max_errors[idx] for x in e]
             step = (2 * self.max_errors[idx]) / (self.quant_level - 1)
             if step == 0:
-                quant = np.floor(e_plus)
+                quant = np.round(e_plus)
             else:
-                quant = np.floor(e_plus/step)   # lub round
+                quant = np.round(e_plus/step)   # lub round
             self.quants.append(quant)
 
     def _save_file(self):

@@ -64,7 +64,7 @@ class Receiver:
                         yk += self.all_k[idx][i] * odtw_seg[ind-i]
                     elif ind - i < 0 and idx > 0:
                         yk += self.all_k[idx][i] * odtw[idx-1][-i]
-                yk = eee - yk/10
+                yk = eee - yk/4
                 odtw_seg.append(yk)
             odtw.append(odtw_seg)
         signal = [x for a in odtw for x in a]
@@ -73,7 +73,7 @@ class Receiver:
         wavfile.write(f'{str(self.bits)}bity.wav', 11025, npa.astype(np.int16))
 
         time = np.linspace(0., len(signal) / 11025, len(signal))
-        plt.plot(time, signal, label="Odtworzony")
+        plt.scatter(time, signal, s=4, c='red', label="Odtworzony")
         plt.legend()
         plt.xlabel("Time [s]")
         plt.ylabel("Amplitude")
